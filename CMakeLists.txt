@@ -12,5 +12,7 @@ add_executable(Taller3 main.cpp
         NodoABB_Instructores.h
         NodoAVL_Estudiantes.cpp
         NodoAVL_Estudiantes.h
+        estudiantes.csv
+        instructores.csv
         Sistema.h
         Sistema.cpp)
