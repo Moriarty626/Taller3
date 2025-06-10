@@ -6,10 +6,12 @@
 
 /**
  * @class NodoABB_Instructores
- * @brief Represents a node in a Binary Search Tree (BST) specialized for storing instructors.
+ * @brief Representa un nodo en un Árbol Binario de Búsqueda (ABB) para instructores.
  *
- * This class defines the structure and behavior of a single node that can
- * hold instructor data and pointers to left and right child nodes.
+ * Esta clase encapsula la estructura de un nodo en un ABB, que incluye un puntero
+ * a un objeto `Instructor` y punteros a los nodos hijos izquierdo y derecho.
+ * Proporciona un constructor para inicializar el nodo con un instructor y un destructor
+ * para liberar los recursos asociados.
  */
 class NodoABB_Instructores {
 public:
@@ -62,6 +64,44 @@ public:
     * prácticas seguras de gestión de memoria para el Árbol Binario de Búsqueda.
     */
     ~NodoABB_Instructores();
+
+    /**
+ * @brief Obtiene el puntero al instructor almacenado.
+ */
+    Instructor* getInstructor() const {
+        return instructor;
+    }
+
+    /**
+     * @brief Obtiene el hijo izquierdo.
+     */
+    NodoABB_Instructores* getIzquierdo() const {
+        return izquierdo;
+    }
+
+    /**
+     * @brief Obtiene el hijo derecho.
+     */
+    NodoABB_Instructores* getDerecho() const {
+        return derecho;
+    }
+
+    /**
+     * @brief Establece el hijo izquierdo.
+     */
+    void setIzquierdo(NodoABB_Instructores* ptr) {
+        izquierdo = ptr;
+    }
+
+    /**
+     * @brief Establece el hijo derecho.
+     */
+    void setDerecho(NodoABB_Instructores* ptr) {
+        derecho = ptr;
+    }
+
 };
+
+
 
 #endif // NODOABB_INSTRUCTORES_H

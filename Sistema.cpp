@@ -21,8 +21,46 @@ Sistema::~Sistema() {
 
 }
 
+static void guardarInOrderAVL(NodoAVL_Estudiantes* nodo, std::ofstream& fout) {
+    if (!nodo) return;
+    // subárbol izquierdo
+    guardarInOrderAVL(nodo->izquierdo, fout);
+    Estudiante* e = nodo->estudiante;
+    // Formato: ID,Nombre,MM/DD/YYYY HH:MM,Pref1|Pref2|Pref3
+    // ID y nombre
+    fout << e->getId() << "," << e->getNombre() << ",";
+    // Fecha
+    fout << (e->getMes() < 10 ? "0" : "") << e->getMes() << "/"
+         << (e->getDia() < 10 ? "0" : "") << e->getDia() << "/"
+         << e->getAnio() << " ";
+    // Hora
+    fout << (e->getHora() < 10 ? "0" : "") << e->getHora() << ":"
+         << (e->getMinuto() < 10 ? "0" : "") << e->getMinuto() << ",";
+    // Preferencias
+    for (int i = 0; i < e->getNumPreferencias(); ++i) {
+        fout << e->getPreferencia(i);
+        if (i < e->getNumPreferencias() - 1) fout << "|";
+    }
+    fout << "\n";
+    // subárbol derecho
+    guardarInOrderAVL(nodo->derecho, fout);
+}
 
 
+static void guardarInOrderABB(NodoABB_Instructores* nodo, std::ofstream& fout) {
+    if (!nodo) return;
+    // recorre subárbol izquierdo
+    guardarInOrderABB(nodo->izquierdo, fout);
+    // vuelca los datos del instructor
+    Instructor* instr = nodo->instructor;
+    fout << instr->getId() << ","
+         << instr->getNombreCompleto() << ","
+         << instr->getAnioIngreso() << ","
+         << instr->getSueldoBase() << ","
+         << instr->getTipoBaile() << "\n";
+    // recorre subárbol derecho
+    guardarInOrderABB(nodo->derecho, fout);
+}
 /**
  * @brief Guarda los datos en los archivos correspondientes.
  *
@@ -30,11 +68,23 @@ Sistema::~Sistema() {
  * Si los archivos no existen, el método los genera vacíos.
  */
 void Sistema::guardarDatos() {
-    std::ofstream archivoInstr("instructores.csv");
-    archivoInstr.close();
+    // Guardar instructores
+    std::ofstream fileIns("D:/Taller3/instructores.csv");
+    if (!fileIns) {
+        std::cerr << "Error al abrir instructores.csv para escritura\n";
+    } else {
+        guardarInOrderABB(raizABB, fileIns);
+        fileIns.close();
+    }
 
-    std::ofstream archivoEst("estudiantes.csv");
-    archivoEst.close();
+    // Guardar estudiantes
+    std::ofstream fileEst("D:/Taller3/estudiantes.csv");
+    if (!fileEst) {
+        std::cerr << "Error al abrir estudiantes.csv para escritura\n";
+    } else {
+        guardarInOrderAVL(raizAVL, fileEst);
+        fileEst.close();
+    }
 }
 
 /**
@@ -159,29 +209,27 @@ void Sistema::mostrarEstudiantes() {
         std::cout << "No hay estudiantes registrados.\n";
         return;
     }
-
     NodoAVL_Estudiantes* stack[100];
     int top = -1;
-    NodoAVL_Estudiantes* actual = raizAVL;
-
-    while (actual || top >= 0) {
-        while (actual) {
-            stack[++top] = actual;
-            actual = actual->izquierdo;
+    NodoAVL_Estudiantes* curr = raizAVL;
+    while (curr || top >= 0) {
+        while (curr) {
+            stack[++top] = curr;
+            curr = curr->izquierdo;
         }
-
-        actual = stack[top--];
-        Estudiante* est = actual->estudiante;
-        std::cout << "\nID: " << est->getId()
-                  << "\nNombre: " << est->getNombre()
-                  << "\nFecha (matricula): " << est->getFechaMatricula()
-                  << "\nPreferencias:\n";
-
-        for (int i = 0; i < est->getNumPreferencias(); ++i) {
-            std::cout << "- " << est->getPreferencia(i) << "\n";
+        curr = stack[top--];
+        Estudiante* e = curr->estudiante;
+        std::cout << "ID: " << e->getId()
+                  << "  Nombre: " << e->getNombre()
+                  << "  Fecha: " << e->getDia() << "/" << e->getMes() << "/" << e->getAnio()
+                  << "  Hora: " << e->getHora() << ":" << (e->getMinuto() < 10 ? "0" : "") << e->getMinuto()
+                  << "  Prefs: ";
+        for (int i = 0; i < e->getNumPreferencias(); ++i) {
+            std::cout << e->getPreferencia(i);
+            if (i < e->getNumPreferencias() - 1) std::cout << "|";
         }
-
-        actual = actual->derecho;
+        std::cout << "\n";
+        curr = curr->derecho;
     }
 }
 
@@ -409,49 +457,60 @@ NodoAVL_Estudiantes* insertarEnAVL(NodoAVL_Estudiantes* nodo, Estudiante* est) {
  * Los archivos son cerrados tras completar la lectura y procesamiento.
  */
 void Sistema::cargarDatos() {
-    std::ifstream archivoInstr("instructores.csv");
-    std::string linea;
-    while (getline(archivoInstr, linea)) {
-        std::stringstream ss(linea);
-        int id, anioIngreso;
-        double sueldo;
-        std::string nombre, tipo;
-        std::getline(ss, linea, ','); id = std::stoi(linea);
-        std::getline(ss, nombre, ',');
-        std::getline(ss, linea, ','); anioIngreso = std::stoi(linea);
-        std::getline(ss, linea, ','); sueldo = std::stod(linea);
-        std::getline(ss, tipo);
-
-        auto* instr = new Instructor(id, nombre, anioIngreso, sueldo, tipo);
-        raizABB = insertarEnABB(raizABB, instr);
-
+    // Instructores
+    std::ifstream fileIns("D:/Taller3/instructores.csv");
+    if (!fileIns) {
+        std::cerr << "Error al abrir instructores.csv\n";
+    } else {
+        std::string line;
+        while (std::getline(fileIns, line)) {
+            if (line.empty()) continue;
+            std::stringstream ss(line);
+            std::string field, nombre, tipo;
+            int id, anioIngreso;
+            double sueldo;
+            std::getline(ss, field, ','); id = std::stoi(field);
+            std::getline(ss, nombre, ',');
+            std::getline(ss, field, ','); anioIngreso = std::stoi(field);
+            std::getline(ss, field, ','); sueldo = std::stod(field);
+            std::getline(ss, tipo);
+            Instructor* instr = new Instructor(id, nombre, anioIngreso, sueldo, tipo);
+            raizABB = insertarEnABB(raizABB, instr);
+        }
+        fileIns.close();
     }
-    archivoInstr.close();
-
-    std::ifstream archivoEst("estudiantes.csv");
-    while (getline(archivoEst, linea)) {
-        std::stringstream ss(linea);
-        int id;
-        std::string nombre, fecha, prefsStr;
-        std::getline(ss, linea, ','); id = std::stoi(linea);
+    // Estudiantes
+    std::ifstream fileEst("D:/Taller3/estudiantes.csv");
+    if (!fileEst) {
+        std::cerr << "Error al abrir estudiantes.csv\n";
+        return;
+    }
+    std::string line2;
+    while (std::getline(fileEst, line2)) {
+        if (line2.empty()) continue;
+        std::stringstream ss(line2);
+        std::string field, nombre, fecha, prefs;
+        int id, dia, mes, anio, hora, minuto;
+        std::getline(ss, field, ','); id = std::stoi(field);
         std::getline(ss, nombre, ',');
         std::getline(ss, fecha, ',');
-        std::getline(ss, prefsStr);
-
-        std::string prefs[3];
-        int nPrefs = 0;
-        std::stringstream prefsSS(prefsStr);
-        std::string item;
-        while (std::getline(prefsSS, item, '|') && nPrefs < 3) {
-            prefs[nPrefs++] = item;
+        std::getline(ss, prefs);
+        // Parse fecha "MM/DD/YYYY HH:MM"
+        char sep;
+        std::stringstream fs(fecha);
+        fs >> mes >> sep >> dia >> sep >> anio >> hora >> sep >> minuto;
+        // Parse preferencias
+        std::string arrPref[3]; int nPref = 0;
+        std::stringstream ps(prefs);
+        while (nPref < 3 && std::getline(ps, field, '|')) {
+            arrPref[nPref++] = field;
         }
-
-        auto* est = new Estudiante(id, nombre, fecha, prefs, nPrefs);
+        Estudiante* est = new Estudiante(id, nombre, dia, mes, anio, hora, minuto, arrPref, nPref);
         raizAVL = insertarEnAVL(raizAVL, est);
-
     }
-    archivoEst.close();
+    fileEst.close();
 }
+
 
 /**
  * @brief Registra un nuevo estudiante en el sistema.
@@ -550,3 +609,6 @@ void Sistema::matricularEstudiante() {
     raizAVL = insertarEnAVL(raizAVL, nuevo);
     std::cout << "Estudiante matriculado con ID: " << id << "\n";
 }
+
+
+

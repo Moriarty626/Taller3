@@ -165,6 +165,8 @@ public:
      * @return Una cadena que representa el nombre del mes actual.
      */
     std::string obtenerMesActualTexto();
+
+
 };
 
 #endif // SISTEMA_H
