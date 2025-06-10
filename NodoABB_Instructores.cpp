@@ -18,4 +18,9 @@ NodoABB_Instructores::NodoABB_Instructores(Instructor* inst)
 {
 
 }
+NodoABB_Instructores::~NodoABB_Instructores() {
+    delete instructor; // Libera el objeto Instructor asociado al nodo
+    izquierdo = nullptr; // Limpia el puntero izquierdo
+    derecho = nullptr; // Limpia el puntero derecho
+}
 

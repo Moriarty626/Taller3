@@ -21,62 +21,7 @@ Sistema::~Sistema() {
 
 }
 
-/**
- * @brief Carga los datos de instructores y estudiantes desde archivos CSV específicos.
- *
- * Este método lee datos de los archivos "instructores.csv" y "estudiantes.csv",
- * creando instancias de las clases Instructor y Estudiante, respectivamente.
- * Procesa las líneas de cada archivo, extrayendo y parseando información como IDs, nombres,
- * fechas, preferencias y otros atributos relevantes para inicializar los objetos.
- *
- * Los datos de los instructores incluyen ID, nombre, año de ingreso, sueldo y tipo.
- * Los datos de los estudiantes incluyen ID, nombre, fecha y preferencias.
- * Maneja hasta tres preferencias por cada estudiante separadas por el carácter '|'.
- *
- * Los archivos son cerrados tras completar la lectura y procesamiento.
- */
-void Sistema::cargarDatos() {
-    std::ifstream archivoInstr("instructores.csv");
-    std::string linea;
-    while (getline(archivoInstr, linea)) {
-        std::stringstream ss(linea);
-        int id, anioIngreso;
-        double sueldo;
-        std::string nombre, tipo;
-        std::getline(ss, linea, ','); id = std::stoi(linea);
-        std::getline(ss, nombre, ',');
-        std::getline(ss, linea, ','); anioIngreso = std::stoi(linea);
-        std::getline(ss, linea, ','); sueldo = std::stod(linea);
-        std::getline(ss, tipo);
 
-        auto* instr = new Instructor(id, nombre, anioIngreso, sueldo, tipo);
-
-    }
-    archivoInstr.close();
-
-    std::ifstream archivoEst("estudiantes.csv");
-    while (getline(archivoEst, linea)) {
-        std::stringstream ss(linea);
-        int id;
-        std::string nombre, fecha, prefsStr;
-        std::getline(ss, linea, ','); id = std::stoi(linea);
-        std::getline(ss, nombre, ',');
-        std::getline(ss, fecha, ',');
-        std::getline(ss, prefsStr);
-
-        std::string prefs[3];
-        int nPrefs = 0;
-        std::stringstream prefsSS(prefsStr);
-        std::string item;
-        while (std::getline(prefsSS, item, '|') && nPrefs < 3) {
-            prefs[nPrefs++] = item;
-        }
-
-        auto* est = new Estudiante(id, nombre, fecha, prefs, nPrefs);
-
-    }
-    archivoEst.close();
-}
 
 /**
  * @brief Guarda los datos en los archivos correspondientes.
@@ -125,104 +70,6 @@ void Sistema::mostrarMenu() {
             default: std::cout << "Opcion invalida.\n"; break;
         }
     } while (opcion != 6);
-}
-
-/**
- * @brief Registra un nuevo estudiante en el sistema.
- *
- * Solicita al usuario los datos personales y las preferencias del estudiante, valida
- * la información ingresada, y genera un identificador único para el nuevo estudiante.
- * Finalmente, crea una nueva instancia de la clase Estudiante en base a los datos
- * proporcionados.
- *
- * La validación incluye:
- * - Verificar que el nombre cumple con el formato establecido.
- * - Verificar que la fecha ingresada es válida.
- * - Verificar que se hayan ingresado preferencias únicas y válidas.
- *
- * Si cualquiera de las validaciones falla, la operación termina y se notifica al usuario.
- *
- * La implementación pendiente incluye la inserción del estudiante en el árbol AVL de
- * datos del sistema.
- */
-void Sistema::matricularEstudiante() {
-    std::string nombre;
-    std::cout << "Nombre completo (Nombre Apellido): ";
-    std::getline(std::cin, nombre);
-
-    if (!Estudiante::validarNombreCompleto(nombre)) {
-        std::cout << "Error: nombre inválido.\n";
-        return;
-    }
-
-    int dia, hora, minuto, anio;
-    std::string mesStr;
-    std::cout << "Día: "; std::cin >> dia;
-    std::cout << "Mes (nombre o número): "; std::cin >> mesStr;
-    std::cout << "Hora (0-23): "; std::cin >> hora;
-    std::cout << "Minuto (0-59): "; std::cin >> minuto;
-
-    time_t t = time(nullptr);
-    tm* tiempo = localtime(&t);
-    anio = 1900 + tiempo->tm_year;
-
-    int mes = 0;
-    if (isdigit(mesStr[0])) {
-        mes = std::stoi(mesStr);
-    } else {
-        mes = Estudiante::convertirMesANumero(mesStr);
-    }
-
-    if (!Estudiante::validarFecha(dia, mes, anio)) {
-        std::cout << "Error: fecha inválida.\n";
-        return;
-    }
-
-    std::cout << "Preferencias (1-5 separadas por coma): ";
-    std::cin.ignore();
-    char buffer[50];
-    std::cin.getline(buffer, 50);
-
-    int numeros[3];
-    int nNumeros = 0;
-    char* token = strtok(buffer, ",");
-    while (token != nullptr && nNumeros < 3) {
-        int valor = std::atoi(token);
-
-        // Verifica duplicado
-        bool duplicado = false;
-        for (int i = 0; i < nNumeros; ++i) {
-            if (numeros[i] == valor) {
-                duplicado = true;
-                break;
-            }
-        }
-
-        if (!duplicado && valor >= 1 && valor <= 5) {
-            numeros[nNumeros++] = valor;
-        }
-
-        token = strtok(nullptr, ",");
-    }
-
-    if (nNumeros == 0) {
-        std::cout << "Error: preferencias inválidas.\n";
-        return;
-    }
-
-    std::string preferencias[3];
-    int nPrefs = 0;
-    Estudiante::convertirPreferenciasATexto(numeros, nNumeros, preferencias, nPrefs);
-
-    // Generar ID único
-    int id;
-    do {
-        id = rand() % 10000;
-    } while (idExiste(id, true));
-
-    Estudiante* nuevo = new Estudiante(id, nombre, dia, mes, anio, hora, minuto, preferencias, nPrefs);
-    // TODO: insertar en AVL
-    std::cout << "Estudiante matriculado con ID: " << id << "\n";
 }
 
 /**
@@ -308,6 +155,11 @@ void Sistema::calcularPagos() {
  * identificador, nombre, fecha y preferencias.
  */
 void Sistema::mostrarEstudiantes() {
+    if (!raizAVL) {
+        std::cout << "No hay estudiantes registrados.\n";
+        return;
+    }
+
     NodoAVL_Estudiantes* stack[100];
     int top = -1;
     NodoAVL_Estudiantes* actual = raizAVL;
@@ -322,8 +174,12 @@ void Sistema::mostrarEstudiantes() {
         Estudiante* est = actual->estudiante;
         std::cout << "\nID: " << est->getId()
                   << "\nNombre: " << est->getNombre()
-                  << "\nFecha: " << est->getFechaDisplay()
-                  << "\nPreferencias: " << est->getPreferenciasString() << "\n";
+                  << "\nFecha (matricula): " << est->getFechaMatricula()
+                  << "\nPreferencias:\n";
+
+        for (int i = 0; i < est->getNumPreferencias(); ++i) {
+            std::cout << "- " << est->getPreferencia(i) << "\n";
+        }
 
         actual = actual->derecho;
     }
@@ -442,6 +298,255 @@ void Sistema::eliminarInstructor() {
  * @return true si el identificador existe en el sistema, false en caso contrario.
  */
 bool Sistema::idExiste(int id, bool esEstudiante) {
-    return false;
+    if (esEstudiante) {
+        std::function<bool(NodoAVL_Estudiantes*)> buscar = [&](NodoAVL_Estudiantes* nodo) {
+            if (!nodo) return false;
+            if (nodo->estudiante->getId() == id) return true;
+            return buscar(nodo->izquierdo) || buscar(nodo->derecho);
+        };
+        return buscar(raizAVL);
+    } else {
+        NodoABB_Instructores* actual = raizABB;
+        while (actual) {
+            if (id == actual->instructor->getId()) return true;
+            actual = id < actual->instructor->getId() ? actual->izquierdo : actual->derecho;
+        }
+        return false;
+    }
+}
+// Inserta un nodo en el ABB de instructores
+NodoABB_Instructores* insertarEnABB(NodoABB_Instructores* raiz, Instructor* instr) {
+    if (!raiz) return new NodoABB_Instructores(instr);
+
+    if (instr->getId() < raiz->instructor->getId())
+        raiz->izquierdo = insertarEnABB(raiz->izquierdo, instr);
+    else if (instr->getId() > raiz->instructor->getId())
+        raiz->derecho = insertarEnABB(raiz->derecho, instr);
+    return raiz;
 }
 
+// Altura del nodo
+int altura(NodoAVL_Estudiantes* nodo) {
+    return nodo ? nodo->altura : 0;
+}
+
+// Máximo entre dos enteros
+int maximo(int a, int b) {
+    return (a > b) ? a : b;
+}
+
+// Rotación simple derecha
+NodoAVL_Estudiantes* rotarDerecha(NodoAVL_Estudiantes* y) {
+    NodoAVL_Estudiantes* x = y->izquierdo;
+    NodoAVL_Estudiantes* T2 = x->derecho;
+    x->derecho = y;
+    y->izquierdo = T2;
+    y->altura = maximo(altura(y->izquierdo), altura(y->derecho)) + 1;
+    x->altura = maximo(altura(x->izquierdo), altura(x->derecho)) + 1;
+    return x;
+}
+
+// Rotación simple izquierda
+NodoAVL_Estudiantes* rotarIzquierda(NodoAVL_Estudiantes* x) {
+    NodoAVL_Estudiantes* y = x->derecho;
+    NodoAVL_Estudiantes* T2 = y->izquierdo;
+    y->izquierdo = x;
+    x->derecho = T2;
+    x->altura = maximo(altura(x->izquierdo), altura(x->derecho)) + 1;
+    y->altura = maximo(altura(y->izquierdo), altura(y->derecho)) + 1;
+    return y;
+}
+
+// Factor de equilibrio
+int obtenerBalance(NodoAVL_Estudiantes* nodo) {
+    return nodo ? altura(nodo->izquierdo) - altura(nodo->derecho) : 0;
+}
+
+// Inserta un nodo en el AVL de estudiantes
+NodoAVL_Estudiantes* insertarEnAVL(NodoAVL_Estudiantes* nodo, Estudiante* est) {
+    if (!nodo) return new NodoAVL_Estudiantes(est);
+
+    if (est->getFechaMatricula() < nodo->claveFecha)
+        nodo->izquierdo = insertarEnAVL(nodo->izquierdo, est);
+    else if (est->getFechaMatricula() > nodo->claveFecha)
+        nodo->derecho = insertarEnAVL(nodo->derecho, est);
+    else
+        return nodo;
+
+    nodo->altura = 1 + maximo(altura(nodo->izquierdo), altura(nodo->derecho));
+
+    int balance = obtenerBalance(nodo);
+
+    // Rotaciones
+    if (balance > 1 && est->getFechaMatricula() < nodo->izquierdo->claveFecha)
+        return rotarDerecha(nodo);
+    if (balance < -1 && est->getFechaMatricula() > nodo->derecho->claveFecha)
+        return rotarIzquierda(nodo);
+    if (balance > 1 && est->getFechaMatricula() > nodo->izquierdo->claveFecha) {
+        nodo->izquierdo = rotarIzquierda(nodo->izquierdo);
+        return rotarDerecha(nodo);
+    }
+    if (balance < -1 && est->getFechaMatricula() < nodo->derecho->claveFecha) {
+        nodo->derecho = rotarDerecha(nodo->derecho);
+        return rotarIzquierda(nodo);
+    }
+
+    return nodo;
+}
+
+/**
+ * @brief Carga los datos de instructores y estudiantes desde archivos CSV específicos.
+ *
+ * Este método lee datos de los archivos "instructores.csv" y "estudiantes.csv",
+ * creando instancias de las clases Instructor y Estudiante, respectivamente.
+ * Procesa las líneas de cada archivo, extrayendo y parseando información como IDs, nombres,
+ * fechas, preferencias y otros atributos relevantes para inicializar los objetos.
+ *
+ * Los datos de los instructores incluyen ID, nombre, año de ingreso, sueldo y tipo.
+ * Los datos de los estudiantes incluyen ID, nombre, fecha y preferencias.
+ * Maneja hasta tres preferencias por cada estudiante separadas por el carácter '|'.
+ *
+ * Los archivos son cerrados tras completar la lectura y procesamiento.
+ */
+void Sistema::cargarDatos() {
+    std::ifstream archivoInstr("instructores.csv");
+    std::string linea;
+    while (getline(archivoInstr, linea)) {
+        std::stringstream ss(linea);
+        int id, anioIngreso;
+        double sueldo;
+        std::string nombre, tipo;
+        std::getline(ss, linea, ','); id = std::stoi(linea);
+        std::getline(ss, nombre, ',');
+        std::getline(ss, linea, ','); anioIngreso = std::stoi(linea);
+        std::getline(ss, linea, ','); sueldo = std::stod(linea);
+        std::getline(ss, tipo);
+
+        auto* instr = new Instructor(id, nombre, anioIngreso, sueldo, tipo);
+        raizABB = insertarEnABB(raizABB, instr);
+
+    }
+    archivoInstr.close();
+
+    std::ifstream archivoEst("estudiantes.csv");
+    while (getline(archivoEst, linea)) {
+        std::stringstream ss(linea);
+        int id;
+        std::string nombre, fecha, prefsStr;
+        std::getline(ss, linea, ','); id = std::stoi(linea);
+        std::getline(ss, nombre, ',');
+        std::getline(ss, fecha, ',');
+        std::getline(ss, prefsStr);
+
+        std::string prefs[3];
+        int nPrefs = 0;
+        std::stringstream prefsSS(prefsStr);
+        std::string item;
+        while (std::getline(prefsSS, item, '|') && nPrefs < 3) {
+            prefs[nPrefs++] = item;
+        }
+
+        auto* est = new Estudiante(id, nombre, fecha, prefs, nPrefs);
+        raizAVL = insertarEnAVL(raizAVL, est);
+
+    }
+    archivoEst.close();
+}
+
+/**
+ * @brief Registra un nuevo estudiante en el sistema.
+ *
+ * Solicita al usuario los datos personales y las preferencias del estudiante, valida
+ * la información ingresada, y genera un identificador único para el nuevo estudiante.
+ * Finalmente, crea una nueva instancia de la clase Estudiante en base a los datos
+ * proporcionados.
+ *
+ * La validación incluye:
+ * - Verificar que el nombre cumple con el formato establecido.
+ * - Verificar que la fecha ingresada es válida.
+ * - Verificar que se hayan ingresado preferencias únicas y válidas.
+ *
+ * Si cualquiera de las validaciones falla, la operación termina y se notifica al usuario.
+ *
+ * La implementación pendiente incluye la inserción del estudiante en el árbol AVL de
+ * datos del sistema.
+ */
+void Sistema::matricularEstudiante() {
+    std::string nombre;
+    std::cout << "Nombre completo (Nombre Apellido): ";
+    std::getline(std::cin, nombre);
+
+    if (!Estudiante::validarNombreCompleto(nombre)) {
+        std::cout << "Error: nombre invalido.\n";
+        return;
+    }
+
+    int dia, hora, minuto, anio;
+    std::string mesStr;
+    std::cout << "Dia: "; std::cin >> dia;
+    std::cout << "Mes (nombre o numero): "; std::cin >> mesStr;
+    std::cout << "Hora (0-23): "; std::cin >> hora;
+    std::cout << "Minuto (0-59): "; std::cin >> minuto;
+
+    time_t t = time(nullptr);
+    tm* tiempo = localtime(&t);
+    anio = 1900 + tiempo->tm_year;
+
+    int mes = 0;
+    if (isdigit(mesStr[0])) {
+        mes = std::stoi(mesStr);
+    } else {
+        mes = Estudiante::convertirMesANumero(mesStr);
+    }
+
+    if (!Estudiante::validarFecha(dia, mes, anio)) {
+        std::cout << "Error: fecha invalida.\n";
+        return;
+    }
+
+    std::cout << "Preferencias (1-5 separadas por coma): ";
+    std::cin.ignore();
+    char buffer[50];
+    std::cin.getline(buffer, 50);
+
+    int numeros[3];
+    int nNumeros = 0;
+    char* token = strtok(buffer, ",");
+    while (token != nullptr && nNumeros < 3) {
+        int valor = std::atoi(token);
+
+        // Verifica duplicado
+        bool duplicado = false;
+        for (int i = 0; i < nNumeros; ++i) {
+            if (numeros[i] == valor) {
+                duplicado = true;
+                break;
+            }
+        }
+
+        if (!duplicado && valor >= 1 && valor <= 5) {
+            numeros[nNumeros++] = valor;
+        }
+
+        token = strtok(nullptr, ",");
+    }
+
+    if (nNumeros == 0) {
+        std::cout << "Error: preferencias invalidas.\n";
+        return;
+    }
+
+    std::string preferencias[3];
+    int nPrefs = 0;
+    Estudiante::convertirPreferenciasATexto(numeros, nNumeros, preferencias, nPrefs);
+
+    // Generar ID único
+    int id;
+    do {
+        id = rand() % 10000;
+    } while (idExiste(id, true));
+
+    Estudiante* nuevo = new Estudiante(id, nombre, dia, mes, anio, hora, minuto, preferencias, nPrefs);
+    raizAVL = insertarEnAVL(raizAVL, nuevo);
+    std::cout << "Estudiante matriculado con ID: " << id << "\n";
+}
